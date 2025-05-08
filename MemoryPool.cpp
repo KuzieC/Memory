@@ -5,23 +5,23 @@ size_t MemoryPool::alighPad(char* cur, size_t align) {
     return (align - (reinterpret_cast<uintptr_t>(cur) % align))%align;
 }
 void* MemoryPool::allocate(size_t n, size_t align) {
-    //request new block if not available 
-    if(!currBlock || currBlock >= endBlock) {
+    //check if we can fit n in the current block
+    if(!currBlock || currBlock + n >= endBlock) {
         Block* newBlock = static_cast<Block*>(operator new(BLOCK_SIZE));
         //link fristBlock pointer
         newBlock->next = firstBlock;
         firstBlock = newBlock;   
         char* newCurr = reinterpret_cast<char*>(newBlock) + sizeof(Block);
         size_t padding = alighPad(newCurr, align);
-        currBlock = reinterpret_cast<uint8_t*>(newCurr + padding);
-        endBlock = reinterpret_cast<uint8_t*>(reinterpret_cast<char*>(newBlock) + BLOCK_SIZE - SLOT_SIZE + 1);
+        currBlock = newCurr + padding;
+        endBlock = reinterpret_cast<char*>(newBlock) + BLOCK_SIZE;
     }
 
     void* ret = currBlock;
 
     char* newCurr = reinterpret_cast<char*>(currBlock) + n;
     size_t padding = alighPad(newCurr, align);
-    currBlock = reinterpret_cast<uint8_t*>(newCurr + padding); //move curr pointer
+    currBlock = reinterpret_cast<char*>(newCurr + padding); //move curr pointer
 
     return ret; //return the pointer to the allocated memory
 

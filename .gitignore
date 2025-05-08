@@ -1,1 +1,15 @@
 example.*
+test.exe
+*.obj
+*.o
+*.exe
+*.log
+.vscode/
+*.user
+*.suo
+*.pdb
+*.ilk
+*.ipch
+*.db
+*.VC.db
+*.VC.opendb
