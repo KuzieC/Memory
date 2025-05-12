@@ -1,53 +1,97 @@
-#include "MemoryPool.h"
+#include "MemoryBucket.h"
 #include <iostream>
 #include <chrono>
-#include <cstring>
 #include <vector>
-#include <new> // For placement new
+#include <new>
+#include <cstring>
 
-// A custom data type for testing
-struct CustomData {
-    int id;
-    double value;
-    char name[32];
+// A small custom data type
+struct SmallData {
+    int a;
+    char b;
+    SmallData(int x, char y) : a(x), b(y) {}
+};
 
-    CustomData(int i, double v, const char* n) : id(i), value(v) {
+// A large custom data type
+struct LargeData {
+    double arr[128];
+    char name[128];
+    LargeData(double v, const char* n) {
+        for (int i = 0; i < 128; ++i) arr[i] = v + i;
         strncpy(name, n, sizeof(name));
         name[sizeof(name) - 1] = '\0';
     }
 };
 
 int main() {
-    const size_t numObjects = 1000000; // Number of objects to allocate
-    std::vector<CustomData*> objects;
+    const size_t numObjects = 1000000;
+    std::vector<SmallData*> smallObjs;
+    std::vector<LargeData*> largeObjs;
 
-    // Test 1: Using standard operator new
+    // Initialize the memory pool bucket
+    MemoryBucket::initMemoryPool();
+
+    // --- Small Object Test: Standard operator new ---
+    std::cout << "\n[Small Object Test: Standard operator new]" << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < numObjects; ++i) {
-        objects.push_back(new CustomData(i, i * 0.1, "Standard"));
+        smallObjs.push_back(new SmallData(i, 'a'));
     }
-    for (auto obj : objects) {
+    for (auto obj : smallObjs) {
         delete obj;
     }
-    objects.clear();
+    smallObjs.clear();
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "Standard operator new: "
               << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
               << " ms" << std::endl;
 
-    // Test 2: Using custom memory pool
-    MemoryPool pool;
+    // --- Small Object Test: MemoryBucket ---
+    std::cout << "[Small Object Test: MemoryBucket]" << std::endl;
     start = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < numObjects; ++i) {
-        void* memory = pool.allocate(sizeof(CustomData), alignof(CustomData));
-        objects.push_back(new (memory) CustomData(i, i * 0.1, "MemoryPool"));
+        void* memory = MemoryBucket::allocate(sizeof(SmallData));
+        smallObjs.push_back(new (memory) SmallData(i, 'a'));
     }
-    for (auto obj : objects) {
-        obj->~CustomData(); // Call destructor explicitly
+    for (auto obj : smallObjs) {
+        obj->~SmallData();
+        MemoryBucket::deallcoate(obj, sizeof(SmallData));
     }
-    pool.deallocate();
+    smallObjs.clear();
     end = std::chrono::high_resolution_clock::now();
-    std::cout << "Custom memory pool: "
+    std::cout << "MemoryBucket custom pool: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+              << " ms" << std::endl;
+
+    // --- Large Object Test: Standard operator new ---
+    std::cout << "\n[Large Object Test: Standard operator new]" << std::endl;
+    start = std::chrono::high_resolution_clock::now();
+    for (size_t i = 0; i < numObjects; ++i) {
+        largeObjs.push_back(new LargeData(i * 0.1, "LargeObject"));
+    }
+    for (auto obj : largeObjs) {
+        delete obj;
+    }
+    largeObjs.clear();
+    end = std::chrono::high_resolution_clock::now();
+    std::cout << "Standard operator new: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+              << " ms" << std::endl;
+
+    // --- Large Object Test: MemoryBucket ---
+    std::cout << "[Large Object Test: MemoryBucket]" << std::endl;
+    start = std::chrono::high_resolution_clock::now();
+    for (size_t i = 0; i < numObjects; ++i) {
+        void* memory = MemoryBucket::allocate(sizeof(LargeData));
+        largeObjs.push_back(new (memory) LargeData(i * 0.1, "LargeObject"));
+    }
+    for (auto obj : largeObjs) {
+        obj->~LargeData();
+        MemoryBucket::deallcoate(obj, sizeof(LargeData));
+    }
+    largeObjs.clear();
+    end = std::chrono::high_resolution_clock::now();
+    std::cout << "MemoryBucket custom pool: "
               << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
               << " ms" << std::endl;
 
