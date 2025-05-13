@@ -9,9 +9,6 @@ MemoryPool::MemoryPool()
 
 }
 
-MemoryPool::~MemoryPool(){
-    deallocateAll();
-}
 
 void MemoryPool::init(size_t size) {
     SLOT_SIZE = size;
@@ -25,15 +22,24 @@ size_t MemoryPool::alighPad(char* cur, size_t align) {
 }
 
 void* MemoryPool::popFreeList() {
-    if( freeList == nullptr) return nullptr;
-    void* ret = freeList;
-    freeList = freeList->next;
-    return ret;
+    auto oldHead = freeList.load(std::memory_order_acquire);
+    if(oldHead == nullptr) return nullptr;
+    Slot* newHead = oldHead->next.load(std::memory_order_relaxed);
+    while(!freeList.compare_exchange_weak(oldHead, newHead,
+        std::memory_order_acquire, std::memory_order_relaxed)){
+            if(oldHead == nullptr) return nullptr;
+            newHead = oldHead->next.load(std::memory_order_relaxed);
+    }
+    return oldHead;
 }
 
 void MemoryPool::pushFreeList(Slot* b) {
-    b->next = freeList;
-    freeList = b;
+    auto oldHead = freeList.load(std::memory_order_relaxed);
+    b->next.store(oldHead, std::memory_order_relaxed);
+    while(!freeList.compare_exchange_weak(oldHead, b,
+        std::memory_order_release, std::memory_order_relaxed)){
+            b->next.store(oldHead, std::memory_order_relaxed);
+    }
 }
 
 void* MemoryPool::allocate(size_t n, size_t align) {
@@ -45,7 +51,7 @@ void* MemoryPool::allocate(size_t n, size_t align) {
     if(newFreeBlock != nullptr){
         return newFreeBlock;
     }
-
+    std::lock_guard<std::mutex> lock(firstBlockMutex);
     if(!currBlock || currBlock + n >= endBlock) {
         Slot* newBlock = static_cast<Slot*>(operator new(BLOCK_SIZE));
         //link fristBlock pointer
@@ -76,10 +82,10 @@ void MemoryPool::deallocate(Slot* b) {
     pushFreeList(b);
 }
 
-void MemoryPool::deallocateAll() {
-    while(firstBlock) {
-        auto next = firstBlock->next;
-        operator delete(firstBlock);
-        firstBlock = next;
-    }
-}
+// void MemoryPool::deallocateAll() {
+//     while(firstBlock) {
+//         auto next = firstBlock->next;
+//         operator delete(firstBlock);
+//         firstBlock = next;
+//     }
+// }
