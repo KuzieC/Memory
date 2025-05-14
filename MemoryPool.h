@@ -27,7 +27,6 @@ public:
     void deallocateAll();
     void init(size_t Slot_size);
     MemoryPool();
-    ~MemoryPool();
 };
 
 /**
