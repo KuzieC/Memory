@@ -1,6 +1,5 @@
 #pragma once
 #include "helper.h"
-#include <array>
 
 class ThreadCache{
 public:
