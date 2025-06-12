@@ -41,3 +41,39 @@ void* CentralCache::getCentralCache(size_t index) {
     CentralFreeListLock[index].clear(std::memory_order_release);
     return ptr;
 }
+
+void CentralCache::returnCentralCache(void* ptr, size_t index, size_t count) {
+    if(index > MaxIndex || !ptr || count == 0) {
+        return;
+    }
+
+    void* start = ptr;
+    while(ptr != nullptr && count > 0) {
+        count--;
+        ptr = *reinterpret_cast<void**>(ptr);
+    }
+
+    while(CentralFreeListLock[index].test_and_set(std::memory_order_acquire)) {
+        std::this_thread::yield(); 
+    }
+
+    try{
+        void* current = CentralFreeList[index].load(std::memory_order_relaxed);
+        *reinterpret_cast<void**>(ptr) = current;
+        CentralFreeList[index].store(start, std::memory_order_release);
+    }
+    catch(...) {
+        CentralFreeListLock[index].clear(std::memory_order_release);
+        throw; 
+    }
+    CentralFreeListLock[index].clear(std::memory_order_release);
+}
+
+void* CentralCache::getPageCache(size_t size) {
+    if ( size <= PageSize * SpanPage) {
+        //PageCache
+    }
+    else{
+        // PageCache (size + PageSize - 1) / PageSize
+    }
+}

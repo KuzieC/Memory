@@ -9,7 +9,7 @@ public:
     }
 
     void* getCentralCache(size_t index);
-    void returnCentralCache(void* ptr, size_t size);
+    void returnCentralCache(void* ptr, size_t size, size_t count);
 private:
     CentralCache() {
         for (auto& slot : CentralFreeList) {
@@ -17,6 +17,8 @@ private:
         }        
         CentralFreeListLock.fill(std::atomic_flag{});
     }
+
+    void* getPageCache(size_t size);
     // Atomic pointer for single pointer operation
     std::array<std::atomic<void*>, MaxIndex> CentralFreeList;
     // Spinlock for each size freelist mutual exclusioN
