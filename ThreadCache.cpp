@@ -1,5 +1,5 @@
 #include "ThreadCache.h"
-
+#include "CentralCache.h"
 void* ThreadCache::allocate(size_t size){
     if(size <= 0){
         return nullptr; 
@@ -17,7 +17,7 @@ void* ThreadCache::allocate(size_t size){
         return ptr;
     }
 
-    return getCentralCache(size);
+    return getCentralCache(index);
 }
 
 void ThreadCache::deallocate(void* ptr, size_t size){
@@ -55,9 +55,23 @@ void ThreadCache::returnCentralCache(void* ptr, size_t size){
     freeListSize[index] = keptNum;
     if(returnPtr){
         // Return the rest of the memory to the central cache
+        CentralCache::get()->returnCentralCache(returnPtr, index, totalNum - keptNum);
     }
 }
 
-void* ThreadCache::getCentralCache(size_t size){
-    
+void* ThreadCache::getCentralCache(size_t index){
+    void* start = CentralCache::get()->getCentralCache(index);
+    if(!start) {
+        throw std::bad_alloc();
+    }
+    void* next = *reinterpret_cast<void**>(start);
+    *reinterpret_cast<void**>(start) = nullptr;
+    freeList[index] = next;
+    size_t count = 0;
+    while(next) {
+        count++;
+        next = *reinterpret_cast<void**>(next);
+    }
+    freeListSize[index] = count;
+    return start;
 }

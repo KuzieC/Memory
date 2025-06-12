@@ -9,7 +9,7 @@ public:
     }
 
     void* getCentralCache(size_t index);
-    void returnCentralCache(void* ptr, size_t size, size_t count);
+    void returnCentralCache(void* ptr, size_t index, size_t count);
 private:
     CentralCache() {
         for (auto& slot : CentralFreeList) {

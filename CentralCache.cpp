@@ -14,7 +14,7 @@ void* CentralCache::getCentralCache(size_t index) {
         if(ptr) {
             void* next = *reinterpret_cast<void**>(ptr);
             *reinterpret_cast<void**>(ptr) = nullptr;
-            CentralFreeList[index].store(next, std::memory_order_release);
+            CentralFreeList[index].store(nullptr, std::memory_order_release);
         }
         else{
             size_t blockSize = (index + 1) * alignment;
@@ -24,14 +24,13 @@ void* CentralCache::getCentralCache(size_t index) {
             }
             char* start = static_cast<char*>(ptr);
             size_t numBlock = (SpanPage * PageSize) / blockSize;
-            if( numBlock > 1){
-                for(size_t i = 0; i < numBlock - 1; ++i) {
-                    char* currBlock = start + i * blockSize;
-                    char* nextBlock = start + (i + 1) * blockSize;
-                    *reinterpret_cast<void**>(currBlock) = nextBlock;
-                }
-                char* lastBlock = start + (numBlock - 1) * blockSize;
+            for(size_t i = 0; i < numBlock - 1; ++i) {
+                void* currBlock = start + i * blockSize;
+                void* nextBlock = start + (i + 1) * blockSize;
+                *reinterpret_cast<void**>(currBlock) = nextBlock;
             }
+            void* lastBlock = start + (numBlock - 1) * blockSize;
+            *reinterpret_cast<void**>(lastBlock) = nullptr; 
         }
     }
     catch(...){
