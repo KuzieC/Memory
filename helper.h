@@ -1,5 +1,7 @@
 #include <stdexcept>
 #include <array>
+#include <windows.h>
+
 constexpr size_t MaxSize = 256 * 1024; // 256 KB
 constexpr size_t alignment = sizeof(void*);
 constexpr size_t MaxIndex = MaxSize / alignment;

@@ -1,4 +1,5 @@
 #include "CentralCache.h"
+#include "PageCache.h"
 
 void* CentralCache::getCentralCache(size_t index) {
     if(index > MaxIndex) {
@@ -71,8 +72,10 @@ void CentralCache::returnCentralCache(void* ptr, size_t index, size_t count) {
 void* CentralCache::getPageCache(size_t size) {
     if ( size <= PageSize * SpanPage) {
         //PageCache
+        return PageCache::get()->getPageCache(SpanPage);
     }
     else{
         // PageCache (size + PageSize - 1) / PageSize
+        return PageCache::get()->getPageCache((size + PageSize - 1) / PageSize);
     }
 }
