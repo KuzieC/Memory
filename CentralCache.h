@@ -1,6 +1,7 @@
 #pragma once
 #include "helper.h"
 #include <mutex>
+#include <atomic>
 class CentralCache {
 public:
     static CentralCache* get() {
@@ -14,8 +15,10 @@ private:
     CentralCache() {
         for (auto& slot : CentralFreeList) {
             slot.store(nullptr, std::memory_order_relaxed);
-        }        
-        CentralFreeListLock.fill(std::atomic_flag{});
+        }
+        for (auto& flag : CentralFreeListLock) {
+            flag.clear();
+        }
     }
 
     void* getPageCache(size_t size);
