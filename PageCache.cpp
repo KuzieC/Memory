@@ -1,4 +1,14 @@
+/**
+ * @file PageCache.cpp
+ * @brief Implementation of page-level memory management
+ * 
+ * This file implements the page cache that manages large memory spans
+ * from the operating system, providing the foundation for the memory
+ * allocation hierarchy.
+ */
+
 #include "PageCache.h"
+
 Span::Span(void* start, size_t pageNum)
     : startAdd(start), PageNum(pageNum), next(nullptr) {
     if (!startAdd) {
@@ -46,7 +56,11 @@ void* PageCache::getPageCache(size_t PageNum) {
 }
 
 void PageCache::returnPageCache(void* ptr, size_t PageNum) {
-    
+    // TODO: Implement span merging and return to available span map
+    // For now, this function is intentionally left empty as the current
+    // implementation does not require returning spans to the OS
+    (void)ptr;     // Suppress unused parameter warning
+    (void)PageNum; // Suppress unused parameter warning
 }
 Span* PageCache::Alloc(size_t PageNum) {
     size_t size = PageNum * PageSize;

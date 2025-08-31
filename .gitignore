@@ -1,5 +1,6 @@
 example.*
 test.exe
+test_program
 *.obj
 *.o
 *.exe
