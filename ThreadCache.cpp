@@ -1,5 +1,14 @@
+/**
+ * @file ThreadCache.cpp
+ * @brief Implementation of thread-local memory cache
+ * 
+ * This file implements the thread-local caching layer that reduces contention
+ * on central cache by maintaining per-thread free lists for different allocation sizes.
+ */
+
 #include "ThreadCache.h"
 #include "CentralCache.h"
+
 void* ThreadCache::allocate(size_t size){
     if(size <= 0){
         return nullptr; 

@@ -1,3 +1,12 @@
+/**
+ * @file CentralCache.cpp
+ * @brief Implementation of central memory cache with thread-safe operations
+ * 
+ * This file implements the central cache that coordinates memory allocation
+ * between thread caches and page cache, using atomic operations and spinlocks
+ * for thread safety.
+ */
+
 #include "CentralCache.h"
 #include "PageCache.h"
 #include <thread>
@@ -16,7 +25,7 @@ void* CentralCache::getCentralCache(size_t index) {
         if(ptr) {
             void* next = *reinterpret_cast<void**>(ptr);
             *reinterpret_cast<void**>(ptr) = nullptr;
-            CentralFreeList[index].store(nullptr, std::memory_order_release);
+            CentralFreeList[index].store(next, std::memory_order_release);
         }
         else{
             size_t blockSize = (index + 1) * alignment;

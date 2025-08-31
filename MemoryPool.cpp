@@ -1,11 +1,19 @@
+/**
+ * @file MemoryPool.cpp
+ * @brief Implementation of lock-free memory pool for fixed-size allocations
+ * 
+ * This file implements the core memory pool functionality using atomic operations
+ * for high-performance, thread-safe memory allocation and deallocation.
+ */
+
 #include "MemoryPool.h"
 
 MemoryPool::MemoryPool()
-    : SLOT_SIZE(0)
-    , freeList(nullptr)
+    : freeList(nullptr)
     , currBlock(nullptr)
     , endBlock(nullptr)
-    , firstBlock(nullptr){
+    , firstBlock(nullptr)
+    , SLOT_SIZE(0){
 
 }
 
@@ -17,7 +25,8 @@ void MemoryPool::init(size_t size) {
     endBlock = nullptr;
     freeList = nullptr;
 }
-size_t MemoryPool::alighPad(char* cur, size_t align) {
+
+size_t MemoryPool::alignPad(char* cur, size_t align) {
     return (align - (reinterpret_cast<uintptr_t>(cur) % align))%align;
 }
 
@@ -43,7 +52,7 @@ void MemoryPool::pushFreeList(Slot* b) {
 }
 
 void* MemoryPool::allocate(size_t n, size_t align) {
-    //check if we can fit n in the current Slot
+    // Check if we can fit n in the current block
     if( n > BLOCK_SIZE - sizeof(SLOT_SIZE)) {
         return operator new(n);
     }
@@ -54,27 +63,22 @@ void* MemoryPool::allocate(size_t n, size_t align) {
     std::lock_guard<std::mutex> lock(firstBlockMutex);
     if(!currBlock || currBlock + n >= endBlock) {
         Slot* newBlock = static_cast<Slot*>(operator new(BLOCK_SIZE));
-        //link fristBlock pointer
+        // Link firstBlock pointer
         newBlock->next = firstBlock;
         firstBlock = newBlock;   
         char* newCurr = reinterpret_cast<char*>(newBlock) + sizeof(Slot);
-        size_t padding = alighPad(newCurr, align);
+        size_t padding = alignPad(newCurr, align);
         currBlock = newCurr + padding;
         endBlock = reinterpret_cast<char*>(newBlock) + BLOCK_SIZE;
-        //freeList = nullptr;
     }
 
     void* ret = currBlock;
 
     char* newCurr = reinterpret_cast<char*>(currBlock) + n;
-    size_t padding = alighPad(newCurr, align);
-    currBlock = reinterpret_cast<char*>(newCurr + padding); //move curr pointer
+    size_t padding = alignPad(newCurr, align);
+    currBlock = reinterpret_cast<char*>(newCurr + padding); // Move curr pointer
 
-    return ret; //return the pointer to the allocated memory
-
-    //move curr and end pointer
-
-    //add padding and move curr
+    return ret; // Return the pointer to the allocated memory
 }
 
 void MemoryPool::deallocate(Slot* b) {

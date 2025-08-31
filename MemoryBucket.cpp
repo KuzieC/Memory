@@ -1,5 +1,14 @@
+/**
+ * @file MemoryBucket.cpp
+ * @brief Implementation of the MemoryBucket memory allocator
+ * 
+ * This file implements the main memory allocation interface using
+ * segregated memory pools for high-performance small object allocation.
+ */
+
 #include "MemoryBucket.h"
 
+/** @brief Static array of 64 memory pools for different allocation sizes */
 MemoryPool MemoryBucket::memorypool[64];
 
 void MemoryBucket::initMemoryPool() {
@@ -15,7 +24,7 @@ void* MemoryBucket::allocate(size_t size) {
     return MemoryBucket::memorypool[index].allocate(size);
 }
 
-void MemoryBucket::deallcoate(void* ptr, size_t size) {
+void MemoryBucket::deallocate(void* ptr, size_t size) {
     if(!ptr) return;
     if(size > 512) {
         operator delete(ptr);
